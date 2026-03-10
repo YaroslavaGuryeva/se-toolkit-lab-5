@@ -1,5 +1,6 @@
 import { useState, useEffect, useReducer, FormEvent } from 'react'
 import './App.css'
+import Dashboard from './Dashboard'
 
 const STORAGE_KEY = 'api_key'
 
@@ -21,6 +22,8 @@ type FetchAction =
   | { type: 'fetch_success'; data: Item[] }
   | { type: 'fetch_error'; message: string }
 
+type View = 'items' | 'dashboard'
+
 function fetchReducer(_state: FetchState, action: FetchAction): FetchState {
   switch (action.type) {
     case 'fetch_start':
@@ -38,6 +41,7 @@ function App() {
   )
   const [draft, setDraft] = useState('')
   const [fetchState, dispatch] = useReducer(fetchReducer, { status: 'idle' })
+  const [currentView, setCurrentView] = useState<View>('items')
 
   useEffect(() => {
     if (!token) return
@@ -69,6 +73,7 @@ function App() {
     localStorage.removeItem(STORAGE_KEY)
     setToken('')
     setDraft('')
+    setCurrentView('items') // Reset to items view on disconnect
   }
 
   if (!token) {
@@ -90,36 +95,58 @@ function App() {
   return (
     <div>
       <header className="app-header">
-        <h1>Items</h1>
+        <div className="header-left">
+          <h1>{currentView === 'items' ? 'Items' : 'Analytics Dashboard'}</h1>
+          <nav className="header-nav">
+            <button
+              className={`nav-button ${currentView === 'items' ? 'active' : ''}`}
+              onClick={() => setCurrentView('items')}
+            >
+              Items
+            </button>
+            <button
+              className={`nav-button ${currentView === 'dashboard' ? 'active' : ''}`}
+              onClick={() => setCurrentView('dashboard')}
+            >
+              Dashboard
+            </button>
+          </nav>
+        </div>
         <button className="btn-disconnect" onClick={handleDisconnect}>
           Disconnect
         </button>
       </header>
 
-      {fetchState.status === 'loading' && <p>Loading...</p>}
-      {fetchState.status === 'error' && <p>Error: {fetchState.message}</p>}
+      {currentView === 'items' ? (
+        <>
+          {fetchState.status === 'loading' && <p>Loading...</p>}
+          {fetchState.status === 'error' && <p>Error: {fetchState.message}</p>}
 
-      {fetchState.status === 'success' && (
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ItemType</th>
-              <th>Title</th>
-              <th>Created at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fetchState.items.map((item) => (
-              <tr key={item.id}>
-                <td>{item.id}</td>
-                <td>{item.type}</td>
-                <td>{item.title}</td>
-                <td>{item.created_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          {fetchState.status === 'success' && (
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ItemType</th>
+                  <th>Title</th>
+                  <th>Created at</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fetchState.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.id}</td>
+                    <td>{item.type}</td>
+                    <td>{item.title}</td>
+                    <td>{item.created_at}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
+      ) : (
+        <Dashboard />
       )}
     </div>
   )
