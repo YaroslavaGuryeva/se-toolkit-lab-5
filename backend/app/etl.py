@@ -325,11 +325,11 @@ async def sync(session: AsyncSession) -> dict:
     items_catalog = await fetch_items()
     await load_items(items=items_catalog, session=session)
 
-    # Step 2: Determine the last synced timestamp - АСИНХРОННО!
+    # Step 2: Determine the last synced timestamp - FIXED
     result = await session.execute(
-        select(InteractionLog).order_by(InteractionLog.created_at.desc())
+        select(InteractionLog).order_by(InteractionLog.created_at.desc()).limit(1)
     )
-    latest_interaction = result.scalar_one_or_none()
+    latest_interaction = result.scalar_one_or_none()  # Now safe because we limited to 1 row
 
     since: datetime | None = None
     if latest_interaction is not None:
@@ -343,9 +343,9 @@ async def sync(session: AsyncSession) -> dict:
         session=session,
     )
 
-    # Step 4: Get total count of interactions - АСИНХРОННО!
+    # Step 4: Get total count of interactions - FIXED
     result = await session.execute(select(InteractionLog))
-    total_interactions = len(result.scalars().all())
+    total_interactions = len(result.scalars().all())  # This is fine, we want all rows here
 
     return {
         "new_records": new_interactions,
